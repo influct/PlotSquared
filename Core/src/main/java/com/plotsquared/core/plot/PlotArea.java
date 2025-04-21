@@ -84,6 +84,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 /**
@@ -130,7 +131,7 @@ public abstract class PlotArea implements ComponentLike {
     private boolean forcingPlotChat = false;
     private boolean schematicClaimSpecify = false;
     private boolean schematicOnClaim = false;
-    private String schematicFile = "null";
+    private List<String> schematicFiles = new ArrayList<>();
     private boolean spawnEggs = false;
     private boolean spawnCustom = true;
     private boolean spawnBreeding = false;
@@ -139,6 +140,7 @@ public abstract class PlotArea implements ComponentLike {
     private boolean homeAllowNonmember = false;
     private BlockLoc nonmemberHome;
     private BlockLoc defaultHome;
+    private int schematicPasteHeight;
     private int maxBuildHeight = PlotSquared.platform().versionMaxHeight() + 1; // Exclusive
     private int minBuildHeight = PlotSquared.platform().versionMinHeight() + 1; // Inclusive
     private int maxGenHeight = PlotSquared.platform().versionMaxHeight(); // Inclusive
@@ -337,8 +339,9 @@ public abstract class PlotArea implements ComponentLike {
         }
         this.plotBiome = ConfigurationUtil.BIOME.parseString(biomeString.toLowerCase());
         this.schematicOnClaim = config.getBoolean("schematic.on_claim");
-        this.schematicFile = config.getString("schematic.file");
+        this.schematicFiles = config.getStringList("schematic.file");
         this.schematicClaimSpecify = config.getBoolean("schematic.specify_on_claim");
+        this.schematicPasteHeight = config.getInt("schematic.paste_height", 50);
         this.schematics = new ArrayList<>(config.getStringList("schematic.schematics"));
         this.schematics.replaceAll(String::toLowerCase);
         this.useEconomy = config.getBoolean("economy.use");
@@ -480,6 +483,7 @@ public abstract class PlotArea implements ComponentLike {
         options.put("schematic.file", this.getSchematicFile());
         options.put("schematic.specify_on_claim", this.isSchematicClaimSpecify());
         options.put("schematic.schematics", this.getSchematics());
+        options.put("schematic.paste_height", this.getSchematicPasteHeight());
         options.put("economy.use", this.useEconomy());
         options.put("economy.prices.claim", 100);
         options.put("economy.prices.merge", 100);
@@ -623,6 +627,10 @@ public abstract class PlotArea implements ComponentLike {
             return null;
         }
         return this.plots.get(pid);
+    }
+
+    public int getSchematicPasteHeight() {
+        return this.schematicPasteHeight;
     }
 
     /**
@@ -1377,7 +1385,13 @@ public abstract class PlotArea implements ComponentLike {
     }
 
     public String getSchematicFile() {
-        return this.schematicFile;
+        if (this.schematicFiles.isEmpty()) return null;
+
+        if (this.schematicFiles.size() == 1) {
+            return this.schematicFiles.get(0);
+        }
+
+        return this.schematicFiles.get(ThreadLocalRandom.current().nextInt(this.schematicFiles.size() - 1));
     }
 
     public boolean isSpawnEggs() {

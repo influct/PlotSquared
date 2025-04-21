@@ -1719,15 +1719,7 @@ public class Plot {
                 TranslatableCaption.of("working.claimed"),
                 TagResolver.resolver("plot", Tag.inserting(Component.text(this.getId().toString())))
         );
-        if (teleport) {
-            if (!auto && Settings.Teleport.ON_CLAIM) {
-                teleportPlayer(player, TeleportCause.COMMAND_CLAIM, result -> {
-                });
-            } else if (auto && Settings.Teleport.ON_AUTO) {
-                teleportPlayer(player, TeleportCause.COMMAND_AUTO, result -> {
-                });
-            }
-        }
+
         PlotArea plotworld = getArea();
         if (plotworld.isSchematicOnClaim()) {
             Schematic sch;
@@ -1748,7 +1740,7 @@ public class Plot {
                     sch,
                     this,
                     0,
-                    getArea().getMinBuildHeight(),
+                    plotworld.getSchematicPasteHeight(),
                     0,
                     Settings.Schematics.PASTE_ON_TOP,
                     player,
@@ -1757,6 +1749,11 @@ public class Plot {
                         public void run(Boolean value) {
                             if (value) {
                                 player.sendMessage(TranslatableCaption.of("schematics.schematic_paste_success"));
+
+                                if (teleport && auto && Settings.Teleport.ON_AUTO) {
+                                    teleportPlayer(player, TeleportCause.COMMAND_AUTO, result -> {
+                                    });
+                                }
                             } else {
                                 player.sendMessage(TranslatableCaption.of("schematics.schematic_paste_failed"));
                             }
@@ -1764,6 +1761,12 @@ public class Plot {
                     }
             );
         }
+
+        if (teleport && !auto && Settings.Teleport.ON_CLAIM) {
+            teleportPlayer(player, TeleportCause.COMMAND_CLAIM, result -> {
+            });
+        }
+
         plotworld.getPlotManager().claimPlot(this, null);
         this.getPlotModificationManager().setSign(player.getName());
         return true;
